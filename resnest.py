@@ -82,11 +82,8 @@ class MemoryCachedDataset(Dataset):
         print("Caching images in memory...")
         self.cached_images = []
         for img_path, label in tqdm(self.data.samples, ncols=75):
-            image = Image.open(img_path).convert('RGB')  # 이미지를 RGB로 변환하여 로드
-            image = np.array(image)
-            image = numpy_transform(image)
-            image_tensor = torch.from_numpy(image).float()  # Tensor로 변환
-            self.cached_images.append((image_tensor, label))
+            image = Image.open(img_path)
+            self.cached_images.append((convert_tensor(image), label))
         print(f"Cached {len(self.cached_images)} images.")
 
         # 클래스 이름 및 클래스 수
@@ -104,6 +101,14 @@ class MemoryCachedDataset(Dataset):
             image = self.transform(image)
         return image, label
 
+
+def convert_tensor(image):
+    image = image.convert('RGB')  # 이미지를 RGB로 변환하여 로드
+    image = np.array(image)
+    image = numpy_transform(image)
+    image_tensor = torch.from_numpy(image).float()  # Tensor로 변환
+
+    return image_tensor
 
 # Dataloader 생성 함수
 def get_dataloader(dataset_path, split_ratio, batch_size=32, shuffle=True):
@@ -255,7 +260,7 @@ def main():
     print(f'Number of classes: {num_classes}')
 
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
-    model = resnest50(
+    model = resnest269(
         num_classes=num_classes
     )
     model.to(device)
@@ -277,6 +282,7 @@ def main():
         # 5 에포크마다 체크포인트 저장
         if epoch % 5 == 0:
             save_checkpoint(model, optimizer, epoch, checkpoint_dir)
+
 
 if __name__ == "__main__":
     main()
