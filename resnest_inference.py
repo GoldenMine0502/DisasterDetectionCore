@@ -39,7 +39,7 @@ model, optimizer, start_epoch = load_checkpoint(model, 20, 'chkpt/resnest')
 
 def inference(image):
     image = convert_tensor(image).to(DEVICE)
-    result = model(image)
+    outputs = model(image)
+    _, predicted = outputs.max(1)
 
-    return result
-
+    return predicted.tensor.cpu().detach().numpy()
