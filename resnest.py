@@ -200,23 +200,6 @@ def validate(model, val_loader, criterion, device):
     return epoch_loss, accuracy
 
 
-def remove_corrupt_images(directory):
-    """
-    지정한 디렉토리 내에서 손상된 이미지를 찾아 삭제하는 함수
-    """
-    print('removing corrupt images...')
-    for subdir, _, files in os.walk(directory):
-        print(subdir, len(files))
-        for file in tqdm(files, ncols=75):
-            file_path = os.path.join(subdir, file)
-            try:
-                with Image.open(file_path).convert('RGB') as img:
-                    img.verify()
-            except (IOError, SyntaxError) as e:
-                print(f"Removing corrupt image: {file_path} - {e}")
-                os.remove(file_path)
-
-
 # 체크포인트 저장 함수
 def save_checkpoint(model, optimizer, epoch, save_dir):
     if not os.path.exists(save_dir):
