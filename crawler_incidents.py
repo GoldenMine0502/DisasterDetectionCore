@@ -14,7 +14,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 # from IPython.display import IFrame
 
 
-with open("dataset/eccv_train.json", "r") as fp:
+with open("dataset/eccv_val.json", "r") as fp:
     dataset = json.load(fp)
 
 
@@ -68,7 +68,12 @@ def download_images_in_parallel(image_name_and_urls, max_threads=64, timeout=16)
         for index, (image_name, url) in enumerate(tqdm(image_name_and_urls, ncols=75)):
             # 각 이미지마다 다른 저장 경로를 설정
             futures.append(
-                executor.submit(download_image, url, os.path.join('../datasets/incidents/images', image_name), timeout)
+                executor.submit(
+                    download_image,
+                    url,
+                    os.path.join('../datasets/incidents/images_val', image_name),
+                    timeout
+                )
             )
 
         # 3. 모든 작업이 완료될 때까지 대기
