@@ -1,15 +1,16 @@
 import json
 import os
+import random
 
 import numpy as np
 from datasets import tqdm
 from torch.utils.data import Dataset, IterableDataset, DataLoader
-import torch.nn.functional as F
 import torch
 from PIL import Image
 
-from resnest import numpy_transform
 import struct
+
+from util import gpu_transform, numpy_transform
 
 
 def collate_fn(batch):
@@ -21,22 +22,6 @@ def collate_fn(batch):
         labels.append(label)
 
     return images, labels
-
-
-def gpu_transform(images, size=(224, 224)):
-    """
-    images: GPU에 로드된 이미지 Tensor
-    size: Resize할 이미지의 크기
-    """
-    # 크기 조정
-    images = F.interpolate(images, size=size, mode='bilinear', align_corners=False)
-
-    # 정규화 (mean, std는 일반적인 RGB 이미지의 기준값)
-    mean = torch.tensor([0.485, 0.456, 0.406], device=images.device).view(1, 3, 1, 1)
-    std = torch.tensor([0.229, 0.224, 0.225], device=images.device).view(1, 3, 1, 1)
-    images = (images - mean) / std
-
-    return images
 
 
 def tensor_process(batch, device):
@@ -57,7 +42,7 @@ def tensor_process(batch, device):
     return images, labels
 
 
-def write_compressed_images(json_path, file_name):
+def write_compressed_images(json_path, folder_name, file_name):
     with open(json_path, 'rt') as file:
         dataset = json.load(file)
 
@@ -65,25 +50,27 @@ def write_compressed_images(json_path, file_name):
 
     total_count = 0
 
-    for image_name in tqdm(dataset.keys(), ncols=75):
-        # 데이터 전처리
-        url = dataset[image_name]['url']
-        image_path = os.path.join('../datasets/incidents/images', url)
+    image_names = list(dataset.keys())
+    random.shuffle(image_names)
 
+    for image_name in tqdm(image_names, ncols=75):
+        # 데이터 전처리
+        image_path = os.path.join('../datasets/incidents', folder_name, image_name)
         if not os.path.exists(image_path):  # 이미지가 존재하지 않으면 스킵
             continue
 
         image = Image.open(image_path)
+        image = image.convert('RGB')
         image = np.array(image)
         image = numpy_transform(image)
 
-        label = set(map(lambda x: x[1], dataset[image_name]['incidents'].items()))[0]
+        label = next(iter(set(map(lambda x: x[1], dataset[image_name]['incidents'].items()))))
 
         # 1. 경로 정보 (문자열)을 바이너리로 저장
-        encoded_path = json_path.encode('utf-8')  # 문자열을 바이트로 인코딩
-        path_length = len(encoded_path)  # 경로 문자열의 길이
-        output_file.write(struct.pack('I', path_length))  # 경로 길이(4바이트, unsigned int) 저장
-        output_file.write(encoded_path)  # 경로 정보 저장
+        # encoded_path = json_path.encode('utf-8')  # 문자열을 바이트로 인코딩
+        # path_length = len(encoded_path)  # 경로 문자열의 길이
+        # output_file.write(struct.pack('I', path_length))  # 경로 길이(4바이트, unsigned int) 저장
+        # output_file.write(encoded_path)  # 경로 정보 저장
 
         # 2. 라벨 (정수)을 바이너리로 저장
         output_file.write(struct.pack('B', label))  # 라벨 (1바이트, unsigned char)
@@ -103,11 +90,11 @@ def load_compressed_images(file_name):
     with open(file_name, 'rb') as f:
         while True:
             # 1. 경로 정보 읽기
-            path_length_data = f.read(4)
-            if not path_length_data:  # EOF 체크
-                break
-            path_length = struct.unpack('I', path_length_data)[0]
-            path = f.read(path_length).decode('utf-8')
+            # path_length_data = f.read(4)
+            # if not path_length_data:  # EOF 체크
+            #     break
+            # path_length = struct.unpack('I', path_length_data)[0]
+            # path = f.read(path_length).decode('utf-8')
 
             # 2. 라벨 읽기
             label = struct.unpack('B', f.read(1))[0]
@@ -118,17 +105,19 @@ def load_compressed_images(file_name):
             image_data = f.read(image_size)
             image = np.frombuffer(image_data, dtype=np.uint8).reshape(image_shape)
 
+            image = torch.from_numpy(image).float()
+            label = torch.from_numpy(label)
+
             # 4. 제네레이터로 반환
-            yield path, label, image
+            yield image, label
 
 
 # 반드시 worker = 1, shuffle=False 이어야 함
 class IncidentsDataset(IterableDataset):
-    def __init__(self, path, length):
+    def __init__(self, path):
         self.path = path
-        self.length = length
         self.num_classes = 2
-        self.classes = ['class_positive', 'class_negative']
+        self.classes = ['class_negative', 'class_positive']
         self.data = []
 
     def __iter__(self):
@@ -156,5 +145,5 @@ def get_val_loader(batch_size):
 
 if __name__ == '__main__':
     # 이미지 크롤링이 완료돼야 캐시할 수 있음
-    write_compressed_images('dataset/eccv_train.json', train_filename)
-    write_compressed_images('dataset/eccv_val.json', val_filename)
+    write_compressed_images('dataset/eccv_train.json', 'images', train_filename)
+    write_compressed_images('dataset/eccv_val.json', 'images_val', val_filename)
