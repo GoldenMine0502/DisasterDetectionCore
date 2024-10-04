@@ -29,3 +29,4 @@ def remove_corrupt_images(directory):
 
 if __name__ == "__main__":
     remove_corrupt_images('../datasets/incidents/images')
+    remove_corrupt_images('../datasets/incidents/images_val')
