@@ -1,5 +1,7 @@
 dataset_path: "../datasets/MEDIC/data/multimodal-deep-learning-disaster-response-mouzannar/multimodal"
-learning_rate: 0.00005
+learning_rate: 0.00001
 split_ratio: 0.9
-epoch: 50
+epoch: 15
 checkpoint_dir: "chkpt/resnest"
+checkpoint_epoch: 1
+batch_size: 16

@@ -110,7 +110,8 @@ def train(model, train_loader, criterion, optimizer, device):
     running_loss = 0.0
     correct = 0
     total = 0
-    for inputs, labels in tqdm(train_loader, ncols=75):
+    count = 0
+    for inputs, labels in (pgbar := tqdm(train_loader, ncols=75)):
         inputs, labels = inputs.to(device), labels.to(device)
 
         # inputs = gpu_transform(inputs)
@@ -130,8 +131,13 @@ def train(model, train_loader, criterion, optimizer, device):
         total += labels.size(0)
         correct += predicted.eq(labels).sum().item()
 
-    epoch_loss = running_loss / len(train_loader.dataset)
-    accuracy = 100. * correct / total
+        count += 1
+
+        epoch_loss = running_loss / count
+        accuracy = 100. * correct / total
+
+        pgbar.set_description('{:.2f}%, {:.4f}'.format(accuracy, epoch_loss))
+
 
     print(f"Train Loss: {epoch_loss:.4f}, Accuracy: {accuracy:.2f}%")
     return epoch_loss, accuracy
@@ -187,11 +193,13 @@ def main():
     config = load_config(args.config)
 
     # yaml 설정 값 가져오기
-    dataset_path = config['dataset_path']
+    # dataset_path = config['dataset_path']
     learning_rate = config['learning_rate']
-    split_ratio = config['split_ratio']
+    # split_ratio = config['split_ratio']
     num_epochs = config['epoch']
     checkpoint_dir = config['checkpoint_dir']
+    checkpoint_epoch = config['checkpoint_epoch']
+    batch_size = config['batch_size']
 
     # 잘못된 이미지 제거
     # remove_corrupt_images(dataset_path)
@@ -203,13 +211,13 @@ def main():
     #     batch_size=8,
     # )
 
-    train_loader = incidents_dataset.get_train_loader(batch_size=8)
-    val_loader = incidents_dataset.get_val_loader(batch_size=8)
+    train_loader = incidents_dataset.get_train_loader(batch_size=batch_size)
+    val_loader = incidents_dataset.get_val_loader(batch_size=batch_size)
     num_classes = 2
 
     # 출력 확인
-    print(f'Train DataLoader has {len(train_loader.dataset)} samples')
-    print(f'Validation DataLoader has {len(val_loader.dataset)} samples')
+    # print(f'Train DataLoader has {len(train_loader.dataset)} samples')
+    # print(f'Validation DataLoader has {len(val_loader.dataset)} samples')
     print(f'Number of classes: {num_classes}')
 
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
@@ -232,8 +240,8 @@ def main():
         # 검증
         validate(model, val_loader, criterion, device)
 
-        # 5 에포크마다 체크포인트 저장
-        if epoch % 5 == 0:
+        # n 에포크마다 체크포인트 저장
+        if epoch % 1 == checkpoint_epoch:
             save_checkpoint(model, optimizer, epoch, checkpoint_dir)
 
 
