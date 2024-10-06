@@ -151,8 +151,8 @@ class IncidentsDataset(IterableDataset):
 # 100%|████████████████████████████████| 57207/57207 [33:55<00:00, 28.10it/s]
 # cached_val.bin: 35117
 
-train_filename = 'cached_train.bin'
-val_filename = 'cached_val.bin'
+train_filename = 'dataset/cached_train.bin'
+val_filename = 'dataset/cached_val.bin'
 
 train_dataset = IncidentsDataset(train_filename, 632516)
 val_dataset = IncidentsDataset(val_filename, 35117)
