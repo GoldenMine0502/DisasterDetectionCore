@@ -41,6 +41,7 @@ def train(model, trainloader, criterion, optimizer, device):
     count = 0
 
     for images, labels in (pgbar := tqdm(trainloader, ncols=75)):
+        # print(images.shape, labels.shape)
         images, labels = images.to(device), labels.to(device)
         optimizer.zero_grad()
 
@@ -81,6 +82,8 @@ def validate(model, validationloader, criterion, device):
             total += labels.size(0)
             correct += (predicted == labels).sum().item()
     accuracy = 100 * correct / total
+    print('validation accuracy: {:.2f}%, loss: {:.4f}'.format(accuracy, val_loss / len(validationloader)))
+
     return val_loss / len(validationloader), accuracy
 
 
@@ -117,15 +120,15 @@ def main():
     # remove_corrupt_images(dataset_path)
 
     # Dataloader 및 클래스 수 구하기
-    train_loader, val_loader, num_classes = get_dataloader(
-        dataset_path,
-        split_ratio,
-        batch_size=batch_size,
-    )
+    # train_loader, val_loader, num_classes = get_dataloader(
+    #     dataset_path,
+    #     split_ratio,
+    #     batch_size=batch_size,
+    # )
 
-    # train_loader = incidents_dataset.get_train_loader(batch_size=batch_size)
-    # val_loader = incidents_dataset.get_val_loader(batch_size=batch_size)
-    # num_classes = 2
+    train_loader = incidents_dataset.get_train_loader(batch_size=batch_size)
+    val_loader = incidents_dataset.get_val_loader(batch_size=batch_size)
+    num_classes = 2
 
     # 출력 확인
     print(f'Train DataLoader has {len(train_loader.dataset)} samples')
@@ -140,7 +143,7 @@ def main():
         # num_labels=num_classes
     )
     config = model_pretrained.config
-    config.num_labels = 2
+    config.num_labels = num_classes
     model = ViTForImageClassification(config)
 
     # CUDA 사용 여부 확인 및 설정
