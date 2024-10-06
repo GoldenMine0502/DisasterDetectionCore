@@ -165,7 +165,7 @@ def get_train_loader(batch_size):
         batch_size=batch_size,
         num_workers=0,
         collate_fn=collate_fn,
-        # pin_memory=True,
+        pin_memory=True,
     )
 
     return train_loader
