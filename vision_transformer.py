@@ -15,7 +15,7 @@ from torch.utils.data import DataLoader, random_split, Dataset
 from transformers import AutoImageProcessor, ViTForImageClassification
 import torch.nn.functional as F
 
-
+from medic_dataset import get_dataloader
 from util import numpy_transform
 
 
@@ -105,9 +105,9 @@ def main():
     config = load_config(args.config)
 
     # yaml 설정 값 가져오기
-    # dataset_path = config['dataset_path']
+    dataset_path = config['dataset_path']
     learning_rate = config['learning_rate']
-    # split_ratio = config['split_ratio']
+    split_ratio = config['split_ratio']
     num_epochs = config['epoch']
     checkpoint_dir = config['checkpoint_dir']
     checkpoint_epoch = config['checkpoint_epoch']
@@ -117,15 +117,15 @@ def main():
     # remove_corrupt_images(dataset_path)
 
     # Dataloader 및 클래스 수 구하기
-    # train_loader, val_loader, num_classes = get_dataloader(
-    #     dataset_path,
-    #     split_ratio,
-    #     batch_size=8,
-    # )
+    train_loader, val_loader, num_classes = get_dataloader(
+        dataset_path,
+        split_ratio,
+        batch_size=batch_size,
+    )
 
-    train_loader = incidents_dataset.get_train_loader(batch_size=batch_size)
-    val_loader = incidents_dataset.get_val_loader(batch_size=batch_size)
-    num_classes = 2
+    # train_loader = incidents_dataset.get_train_loader(batch_size=batch_size)
+    # val_loader = incidents_dataset.get_val_loader(batch_size=batch_size)
+    # num_classes = 2
 
     # 출력 확인
     print(f'Train DataLoader has {len(train_loader.dataset)} samples')
