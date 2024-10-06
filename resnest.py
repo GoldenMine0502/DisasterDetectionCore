@@ -3,6 +3,7 @@ import torch
 from PIL import Image
 from datasets import tqdm
 from torch import nn, optim
+from torch.optim.lr_scheduler import CosineAnnealingLR
 
 import incidents_dataset
 from models.resnest.resnest import resnest50, resnest269
@@ -149,6 +150,7 @@ def validate(model, val_loader, criterion, device):
     running_loss = 0.0
     correct = 0
     total = 0
+    count = 0
     with torch.no_grad():
         for inputs, labels in tqdm(val_loader, ncols=75):
             inputs, labels = inputs.to(device), labels.to(device)
@@ -164,8 +166,9 @@ def validate(model, val_loader, criterion, device):
             _, predicted = outputs.max(1)
             total += labels.size(0)
             correct += predicted.eq(labels).sum().item()
+            count += 1
 
-    epoch_loss = running_loss / len(val_loader.dataset)
+    epoch_loss = running_loss / count
     accuracy = 100. * correct / total
 
     print(f"Validation Loss: {epoch_loss:.4f}, Accuracy: {accuracy:.2f}%")
@@ -185,6 +188,19 @@ def save_checkpoint(model, optimizer, epoch, save_dir):
     print(f"Checkpoint saved at {checkpoint_path}")
 
 
+def load_checkpoint(model, optimizer, checkpoint_path):
+    if not os.path.isfile(checkpoint_path):
+        raise FileNotFoundError(f"Checkpoint file not found: {checkpoint_path}")
+
+    checkpoint = torch.load(checkpoint_path)
+    model.load_state_dict(checkpoint['model_state_dict'])
+    optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+    start_epoch = checkpoint['epoch']
+
+    print(f"Checkpoint loaded from {checkpoint_path}, starting from epoch {start_epoch}")
+    return model, optimizer, start_epoch
+
+
 def main():
     # 인자 파싱
     args = parse_args()
@@ -200,6 +216,7 @@ def main():
     checkpoint_dir = config['checkpoint_dir']
     checkpoint_epoch = config['checkpoint_epoch']
     batch_size = config['batch_size']
+    start_epoch = config['start_epoch']
 
     # 잘못된 이미지 제거
     # remove_corrupt_images(dataset_path)
@@ -228,10 +245,18 @@ def main():
 
     # 손실 함수 및 최적화 도구 설정
     criterion = nn.CrossEntropyLoss()
-    optimizer = optim.AdamW(model.parameters(), lr=learning_rate)
+    optimizer = optim.AdamW(model.parameters(), lr=learning_rate, weight_decay=0.0001)
+    # optimizer = optim.SGD(model.parameters(), lr=learning_rate, momentum=0.9, weight_decay=0.0001)
+
+    # Define the cosine learning rate scheduler
+    scheduler = CosineAnnealingLR(optimizer, T_max=num_epochs, eta_min=0)
+
+    if start_epoch > 1:
+        load_checkpoint(model, optimizer, os.path.join(checkpoint_dir, 'chkpt_{}.pt'.format(start_epoch - 1)))
+
 
     # 학습 및 검증 반복문
-    for epoch in range(1, num_epochs + 1):
+    for epoch in range(start_epoch, num_epochs + 1):
         print(f"Epoch [{epoch}/{num_epochs}]")
 
         # 학습
@@ -243,6 +268,8 @@ def main():
         # n 에포크마다 체크포인트 저장
         if epoch % 1 == checkpoint_epoch:
             save_checkpoint(model, optimizer, epoch, checkpoint_dir)
+
+        scheduler.step()
 
 
 if __name__ == "__main__":

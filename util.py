@@ -41,3 +41,11 @@ def numpy_transform(image, size=(224, 224), mean=(0.485, 0.456, 0.406), std=(0.2
 
     return image
 
+
+# Define the mean and std for normalization (standard for ImageNet)
+mean = torch.tensor([0.485, 0.456, 0.406])[:, None, None]  # R, G, B channel means
+std = torch.tensor([0.229, 0.224, 0.225])[:, None, None]   # R, G, B channel std deviations
+
+
+def regularization(image):
+    return (image - mean) / std

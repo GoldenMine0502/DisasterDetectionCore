@@ -12,7 +12,7 @@ from PIL import Image
 
 import struct
 
-from util import gpu_transform, numpy_transform
+from util import gpu_transform, numpy_transform, regularization
 from torchvision import transforms
 
 
@@ -118,6 +118,7 @@ def load_compressed_images(file_name):
             image = Image.open(image_stream)
             image = image.convert('RGB')  # Convert to RGB format
             image = transform(image)
+            image = regularization(image)
 
             # 라벨 읽기
             label = f.read(1)
@@ -151,7 +152,7 @@ class IncidentsDataset(IterableDataset):
 # cached_val.bin: 35117
 
 train_filename = 'cached_train.bin'
-val_filename = 'cached_val2.bin'
+val_filename = 'cached_val.bin'
 
 train_dataset = IncidentsDataset(train_filename, 632516)
 val_dataset = IncidentsDataset(val_filename, 35117)
