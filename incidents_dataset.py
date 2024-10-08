@@ -16,6 +16,25 @@ from util import gpu_transform, numpy_transform, regularization, collate_images_
 from torchvision import transforms
 
 
+def collate_fn(batch):
+    images = []
+    labels = []
+
+    # print(len(batch))
+
+    for image, label in batch:
+        images.append(image)
+        labels.append(label)
+
+    # print(images)
+    # print(labels)
+
+    images = torch.stack(images)
+    labels = torch.stack(labels)
+
+    return images, labels
+
+
 def tensor_process(batch, device):
     images = []
     labels = []
