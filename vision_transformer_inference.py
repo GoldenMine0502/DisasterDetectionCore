@@ -47,10 +47,10 @@ model, optimizer, start_epoch = load_checkpoint(model, 36, 'chkpt/vision_transfo
 def inference(image):
     image = image.convert('RGB')
     image = image.resize((224, 224), Image.LANCZOS)
-    image = val_transforms(image).logits
+    image = val_transforms(image)
     image = image.unsqueeze(0)
     # image = convert_tensor(image).to(DEVICE)
-    outputs = model(image)
+    outputs = model(image).logits
     _, predicted = outputs.max(1)
 
     return to_numpy_tensor(outputs), to_numpy_tensor(predicted)
