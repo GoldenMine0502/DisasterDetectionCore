@@ -33,11 +33,14 @@ def load_checkpoint(model, epoch, save_dir):
     return model, optimizer, start_epoch
 
 
-model = ViTForImageClassification.from_pretrained(
+model_pretrained = ViTForImageClassification.from_pretrained(
     # 'google/vit-base-patch16-224',
     'openai/clip-vit-large-patch14',
     # num_labels=num_classes
 )
+config = model_pretrained.config
+config.num_labels = 5
+model = ViTForImageClassification(config)
 model, optimizer, start_epoch = load_checkpoint(model, 36, 'chkpt/vision_transformer')
 
 
