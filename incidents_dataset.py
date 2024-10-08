@@ -12,27 +12,8 @@ from PIL import Image
 
 import struct
 
-from util import gpu_transform, numpy_transform, regularization
+from util import gpu_transform, numpy_transform, regularization, collate_images_labels
 from torchvision import transforms
-
-
-def collate_fn(batch):
-    images = []
-    labels = []
-
-    # print(len(batch))
-
-    for image, label in batch:
-        images.append(image)
-        labels.append(label)
-
-    # print(images)
-    # print(labels)
-
-    images = torch.stack(images)
-    labels = torch.stack(labels)
-
-    return images, labels
 
 
 def tensor_process(batch, device):
@@ -164,7 +145,7 @@ def get_train_loader(batch_size):
         train_dataset,
         batch_size=batch_size,
         num_workers=0,
-        collate_fn=collate_fn,
+        collate_fn=collate_images_labels,
         # pin_memory=True,
     )
 
@@ -176,7 +157,7 @@ def get_val_loader(batch_size):
         val_dataset,
         batch_size=batch_size,
         num_workers=0,
-        collate_fn=collate_fn
+        collate_fn=collate_images_labels
     )
 
     return val_loader

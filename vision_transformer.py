@@ -5,7 +5,6 @@ from datasets import tqdm
 from torch import nn, optim
 from torch.optim.lr_scheduler import CosineAnnealingLR
 
-import incidents_dataset
 import argparse
 import yaml
 import os
@@ -15,7 +14,7 @@ from torch.utils.data import DataLoader, random_split, Dataset
 from transformers import AutoImageProcessor, ViTForImageClassification
 import torch.nn.functional as F
 
-from medic_dataset import get_dataloader
+from aider_dataset import get_dataloader, train_transforms, val_transforms
 from util import numpy_transform
 
 
@@ -70,6 +69,11 @@ def validate(model, validationloader, criterion, device):
     val_loss = 0.0
     correct = 0
     total = 0
+    normal_label = 3
+    normal_correct = 0
+    normal_total = 0
+    non_normal_correct = 0
+    non_normal_total = 0
     with torch.no_grad():
         for images, labels in validationloader:
             images, labels = images.to(device), labels.to(device)
@@ -81,8 +85,30 @@ def validate(model, validationloader, criterion, device):
             _, predicted = torch.max(outputs.data, 1)
             total += labels.size(0)
             correct += (predicted == labels).sum().item()
+
+            # normal 클래스와 나머지 클래스 분류
+            is_normal = (labels == normal_label)  # true/false mask
+            is_predicted_normal = (predicted == normal_label)
+
+            # normal에 대한 정확도 계산
+            normal_correct += (is_normal & is_predicted_normal).sum().item()
+            normal_total += is_normal.sum().item()
+
+            # normal이 아닌 클래스에 대한 정확도 계산
+            non_normal_correct += (~is_normal & ~is_predicted_normal).sum().item()
+            non_normal_total += (~is_normal).sum().item()
+
+    # normal 클래스와 normal이 아닌 클래스의 정확도 출력
+    normal_accuracy = normal_correct / normal_total if normal_total > 0 else 0
+    non_normal_accuracy = non_normal_correct / non_normal_total if non_normal_total > 0 else 0
+    binary_accuracy = (normal_correct + non_normal_correct) / (normal_total + non_normal_total)
     accuracy = 100 * correct / total
     print('validation accuracy: {:.2f}%, loss: {:.4f}'.format(accuracy, val_loss / len(validationloader)))
+    print('normal: {:.2f}%, non_normal: {:.2f}%, binary accuracy: {:.2f}%'.format(
+        normal_accuracy * 100,
+        non_normal_accuracy * 100,
+        binary_accuracy * 100
+    ))
 
     return val_loss / len(validationloader), accuracy
 
@@ -120,15 +146,22 @@ def main():
     # remove_corrupt_images(dataset_path)
 
     # Dataloader 및 클래스 수 구하기
-    # train_loader, val_loader, num_classes = get_dataloader(
-    #     dataset_path,
-    #     split_ratio,
-    #     batch_size=batch_size,
-    # )
+    train_loader, val_loader, num_classes = get_dataloader(
+        dataset_path,
+        split_ratio,
+        batch_size=batch_size,
+    )
 
-    train_loader = incidents_dataset.get_train_loader(batch_size=batch_size)
-    val_loader = incidents_dataset.get_val_loader(batch_size=batch_size)
-    num_classes = 2
+    # ['collapsed_building', 'fire', 'flooded_areas', 'normal', 'traffic_incident']
+    # [1, 1, 1, 0, 1]
+
+    # train_loader = incidents_dataset.get_train_loader(batch_size=batch_size)
+    # val_loader = incidents_dataset.get_val_loader(batch_size=batch_size)
+    # num_classes = 2
+
+    # train_loader = medic_dataset.get_train_loader(batch_size=batch_size)
+    # val_loader = medic_dataset.get_val_loader(batch_size=batch_size)
+    # num_classes = 7
 
     # 출력 확인
     print(f'Train DataLoader has {len(train_loader.dataset)} samples')
@@ -139,7 +172,8 @@ def main():
 
     # ViT 모델 설정 (이미지 분류용)
     model_pretrained = ViTForImageClassification.from_pretrained(
-        'google/vit-base-patch16-224',
+        # 'google/vit-base-patch16-224',
+        'openai/clip-vit-large-patch14',
         # num_labels=num_classes
     )
     config = model_pretrained.config
@@ -168,10 +202,11 @@ def main():
         validate(model, val_loader, criterion, device)
 
         # n 에포크마다 체크포인트 저장
-        if epoch % 1 == checkpoint_epoch:
+        if epoch % checkpoint_epoch == 0:
             save_checkpoint(model, optimizer, epoch, checkpoint_dir)
 
         # scheduler.step()
+
 
 if __name__ == "__main__":
     main()

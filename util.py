@@ -30,7 +30,7 @@ def numpy_transform(image, size=(224, 224), mean=(0.485, 0.456, 0.406), std=(0.2
     - mean과 std는 정규화에 사용될 각 채널(RGB)의 평균 및 표준 편차 값
     """
     # 크기 조정
-    image = cv2.resize(image, size)
+    image = cv2.resize(image, size, interpolation=cv2.INTER_LANCZOS4)
 
     # 정규화: (H, W, C) 순서를 (C, H, W)로 변환하고, 정규화 수행
     image = image.astype(np.float32) / 255.0  # 픽셀 값을 [0, 1] 범위로 조정
@@ -49,3 +49,31 @@ std = torch.tensor([0.229, 0.224, 0.225])[:, None, None]   # R, G, B channel std
 
 def regularization(image):
     return (image - mean) / std
+
+
+def convert_tensor(image):
+    image = image.convert('RGB')  # 이미지를 RGB로 변환하여 로드
+    image = np.array(image)
+    image = numpy_transform(image)
+    image_tensor = torch.from_numpy(image).float()  # Tensor로 변환
+
+    return image_tensor
+
+
+def collate_images_labels(batch):
+    images = []
+    labels = []
+
+    # print(len(batch))
+
+    for image, label in batch:
+        images.append(image)
+        labels.append(label)
+
+    # print(images)
+    # print(labels)
+
+    images = torch.stack(images)
+    labels = torch.stack(labels)
+
+    return images, labels
