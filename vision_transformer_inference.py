@@ -30,7 +30,7 @@ def load_checkpoint(model, epoch, save_dir):
     start_epoch = checkpoint['epoch'] + 1
 
     print(f"Checkpoint loaded from '{checkpoint_path}', epoch {checkpoint['epoch']}.")
-    return model, optimizer, start_epoch
+    return model, None, start_epoch
 
 
 model_pretrained = ViTForImageClassification.from_pretrained(
