@@ -8,7 +8,7 @@ from aider_dataset import val_transforms
 from models.resnest.resnest import resnest269
 from util import convert_tensor
 
-DEVICE = 'cuda' if torch.cuda_is_available() else 'cpu'
+DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
 
 
 # 체크포인트 로드 함수
