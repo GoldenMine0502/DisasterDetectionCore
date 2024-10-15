@@ -11,20 +11,32 @@ from util import numpy_transform, convert_tensor
 
 
 # 학습 데이터 변환
+# 45도 = 2.1213203436 => 543.1
+# 30도 = 1.6547005384 => 423.6
+IMG_SIZE = 384
+IMG_RESIZE = 480
+
+pre_train_transforms = transforms.Compose([
+    transforms.Resize(IMG_RESIZE, interpolation=InterpolationMode.LANCZOS),
+])
+
 train_transforms = transforms.Compose([
-    # transforms.Resize((256, 256), interpolation=InterpolationMode.LANCZOS),
-    transforms.RandomResizedCrop(224),
-    transforms.RandomHorizontalFlip(),
-    transforms.RandomVerticalFlip(p=0.25),   # 25% 확률로 상하 반전
-    transforms.RandomRotation(30),
-    transforms.ColorJitter(),
+    transforms.CenterCrop(IMG_RESIZE),
+    transforms.RandomRotation(25),
+    transforms.RandomResizedCrop(IMG_SIZE),
+    transforms.RandomHorizontalFlip(p=0.5),
+    # transforms.RandomVerticalFlip(p=0.5),
+    transforms.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2, hue=0.025),
     transforms.ToTensor(),
     transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
 ])
 
+pre_val_transforms = transforms.Compose([
+    transforms.Resize(IMG_SIZE, interpolation=InterpolationMode.LANCZOS),
+])
+
 val_transforms = transforms.Compose([
-    # transforms.Resize((224, 224), interpolation=InterpolationMode.LANCZOS),
-    # transforms.CenterCrop(224),
+    transforms.CenterCrop(IMG_SIZE),
     transforms.ToTensor(),
     transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
 ])
@@ -76,9 +88,10 @@ def get_dataloader(dataset_path, split_ratio, batch_size=32, shuffle=True):
         image = Image.open(img_path)
         image = image.convert('RGB')
         if len(cached_images) < train_size:
-            image = image.resize((256, 256), Image.LANCZOS)
+            # pass
+            image = pre_train_transforms(image)
         else:
-            image = image.resize((224, 224), Image.LANCZOS)
+            image = pre_val_transforms(image)
         cached_images.append((image, label))
     print(f"Cached {len(cached_images)} images.")
 

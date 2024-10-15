@@ -1,21 +1,15 @@
-import numpy as np
 import torch
-from PIL import Image
 from datasets import tqdm
 from torch import nn, optim
-from torch.optim.lr_scheduler import CosineAnnealingLR
 
 import argparse
 import yaml
 import os
-from torchvision import datasets, transforms
-from torch.utils.data import DataLoader, random_split, Dataset
 
-from transformers import AutoImageProcessor, ViTForImageClassification
-import torch.nn.functional as F
+from transformers import ViTForImageClassification
 
-from aider_dataset import get_dataloader, train_transforms, val_transforms
-from util import numpy_transform
+from aider_dataset import get_dataloader
+from util import BalancedFocalLoss
 
 
 def parse_args():
@@ -58,7 +52,7 @@ def train(model, trainloader, criterion, optimizer, device):
         correct += (predicted == labels).sum().item()
         count += 1
 
-        pgbar.set_description("{:.2f}%, {:.4f}".format(100 * correct / total, running_loss / count))
+        pgbar.set_description("{:.2f}%, {:.8f}".format(100 * correct / total, running_loss / count))
 
     accuracy = 100 * correct / total
     return running_loss / len(trainloader), accuracy
@@ -103,7 +97,7 @@ def validate(model, validationloader, criterion, device):
     non_normal_accuracy = non_normal_correct / non_normal_total if non_normal_total > 0 else 0
     binary_accuracy = (normal_correct + non_normal_correct) / (normal_total + non_normal_total)
     accuracy = 100 * correct / total
-    print('validation accuracy: {:.2f}%, loss: {:.4f}'.format(accuracy, val_loss / len(validationloader)))
+    print('validation accuracy: {:.2f}%, loss: {:.8f}'.format(accuracy, val_loss / len(validationloader)))
     print('normal: {:.2f}%, non_normal: {:.2f}%, binary accuracy: {:.2f}%'.format(
         normal_accuracy * 100,
         non_normal_accuracy * 100,
@@ -114,14 +108,15 @@ def validate(model, validationloader, criterion, device):
 
 
 # 체크포인트 저장 함수
-def save_checkpoint(model, optimizer, epoch, save_dir):
+def save_checkpoint(model, optimizer, scheduler, epoch, save_dir):
     if not os.path.exists(save_dir):
         os.makedirs(save_dir)
     checkpoint_path = os.path.join(save_dir, f'chkpt_{epoch}.pt')
     torch.save({
         'epoch': epoch,
         'model_state_dict': model.state_dict(),
-        'optimizer_state_dict': optimizer.state_dict()
+        'optimizer_state_dict': optimizer.state_dict(),
+        'scheduler_state_dict': scheduler.state_dict()
     }, checkpoint_path)
     print(f"Checkpoint saved at {checkpoint_path}")
 
@@ -173,23 +168,33 @@ def main():
     # ViT 모델 설정 (이미지 분류용)
     model_pretrained = ViTForImageClassification.from_pretrained(
         # 'google/vit-base-patch16-224',
-        'openai/clip-vit-large-patch14',
+        # 'openai/clip-vit-large-patch14',
+        'google/vit-large-patch32-384',
         # num_labels=num_classes
     )
-    config = model_pretrained.config
-    config.num_labels = num_classes
-    model = ViTForImageClassification(config)
+    model_pretrained.classifier = nn.Linear(model_pretrained.config.hidden_size, num_classes)
+    # config = model_pretrained.config
+    # config.num_labels = num_classes
+    # model = ViTForImageClassification(config)
+    model = model_pretrained
 
     # CUDA 사용 여부 확인 및 설정
     model.to(device)
 
     # 손실 함수 및 최적화 도구 설정
-    criterion = nn.CrossEntropyLoss()
+    # criterion = nn.CrossEntropyLoss()
+
+    criterion = BalancedFocalLoss(
+        alpha=torch.tensor([0.2175, 0.2175, 0.2175, 0.13, 0.2175]).to(device),  # 과거 0.15
+        gamma=2.0,
+        weight=torch.tensor([1.0, 1.0, 1.0, 1.0, 1.0]).to(device)
+    )
     optimizer = optim.AdamW(model.parameters(), lr=learning_rate, weight_decay=0.0001)
     # optimizer = optim.SGD(model.parameters(), lr=learning_rate, momentum=0.9, weight_decay=0.0001)
 
     # Define the cosine learning rate scheduler
     # scheduler = CosineAnnealingLR(optimizer, T_max=num_epochs, eta_min=0)
+    scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.5)
 
     # 학습 및 검증 반복문
     for epoch in range(1, num_epochs + 1):
@@ -203,9 +208,9 @@ def main():
 
         # n 에포크마다 체크포인트 저장
         if epoch % checkpoint_epoch == 0:
-            save_checkpoint(model, optimizer, epoch, checkpoint_dir)
+            save_checkpoint(model, optimizer, scheduler, epoch, checkpoint_dir)
 
-        # scheduler.step()
+        scheduler.step()
 
 
 if __name__ == "__main__":

@@ -4,7 +4,7 @@ import torch
 from PIL import Image
 from transformers import ViTForImageClassification
 
-from aider_dataset import val_transforms
+from aider_dataset import val_transforms, pre_val_transforms
 from models.resnest.resnest import resnest269
 from util import convert_tensor
 
@@ -35,7 +35,8 @@ def load_checkpoint(model, epoch, save_dir):
 
 model_pretrained = ViTForImageClassification.from_pretrained(
     # 'google/vit-base-patch16-224',
-    'openai/clip-vit-large-patch14',
+    # 'openai/clip-vit-large-patch14',
+    'google/vit-large-patch32-384',
     # num_labels=num_classes
 )
 config = model_pretrained.config
@@ -46,7 +47,8 @@ model, optimizer, start_epoch = load_checkpoint(model, 36, 'chkpt/vision_transfo
 
 def inference(image):
     image = image.convert('RGB')
-    image = image.resize((224, 224), Image.LANCZOS)
+    # image = image.resize((224, 224), Image.LANCZOS)
+    image = pre_val_transforms(image)
     image = val_transforms(image)
     image = image.unsqueeze(0)
     # image = convert_tensor(image).to(DEVICE)
@@ -55,6 +57,9 @@ def inference(image):
 
     return to_numpy_tensor(outputs), to_numpy_tensor(predicted)
 
+
+def inferencev2(image):
+    image = image.convert('RGB')
 
 def to_numpy_tensor(tensor):
     return tensor.squeeze().cpu().detach().numpy()
