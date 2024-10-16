@@ -25,8 +25,8 @@ train_transforms = transforms.Compose([
     transforms.RandomRotation(25),
     transforms.RandomResizedCrop(IMG_SIZE),
     transforms.RandomHorizontalFlip(p=0.5),
-    # transforms.RandomVerticalFlip(p=0.5),
-    transforms.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2, hue=0.025),
+    # transforms.RandomVerticalFlip(p=0.25),
+    transforms.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2, hue=0.05),
     transforms.ToTensor(),
     transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
 ])

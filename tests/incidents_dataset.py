@@ -69,7 +69,7 @@ def write_compressed_images(json_path, folder_name, file_name, split=False):
 
     for image_name in tqdm(image_names, ncols=75):
         # 데이터 전처리
-        image_path = os.path.join('../datasets/incidents', folder_name, image_name)
+        image_path = os.path.join('../../datasets/incidents', folder_name, image_name)
         if not os.path.exists(image_path):  # 이미지가 존재하지 않으면 스킵
             continue
 
@@ -151,8 +151,8 @@ class IncidentsDataset(IterableDataset):
 # 100%|████████████████████████████████| 57207/57207 [33:55<00:00, 28.10it/s]
 # cached_val.bin: 35117
 
-train_filename = 'dataset/cached_train.bin'
-val_filename = 'dataset/cached_val.bin'
+train_filename = '../dataset/cached_train.bin'
+val_filename = '../dataset/cached_val.bin'
 
 train_dataset = IncidentsDataset(train_filename, 632516)
 val_dataset = IncidentsDataset(val_filename, 35117)

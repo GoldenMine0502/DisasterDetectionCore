@@ -22,7 +22,7 @@ def load_json(path):
     labels = []
 
     for data in res:
-        path = os.path.join('../datasets/MEDIC', data['image_path'])
+        path = os.path.join('../../datasets/MEDIC', data['image_path'])
         label = data['label']
 
         json_data.append((path, label))
@@ -89,8 +89,8 @@ class MedicDataset(Dataset):
         return image, label
 
 
-train_dataset = MedicDataset('../datasets/MEDIC/multilabel/disaster_train.json')
-val_dataset = MedicDataset('../datasets/MEDIC/multilabel/disaster_dev.json')
+train_dataset = MedicDataset('../../datasets/MEDIC/multilabel/disaster_train.json')
+val_dataset = MedicDataset('../../datasets/MEDIC/multilabel/disaster_dev.json')
 
 
 def get_train_loader(batch_size=32, num_workers=0):
@@ -119,7 +119,7 @@ def get_val_loader(batch_size=32, num_workers=0):
 
 
 if __name__ == '__main__':
-    train_loader = MedicDataset('../datasets/MEDIC/multilabel/disaster_train.json')
+    train_loader = MedicDataset('../../datasets/MEDIC/multilabel/disaster_train.json')
     # train_data = load_json('../datasets/MEDIC/multilabel/disaster_train.json')
     #
     # labels = set()

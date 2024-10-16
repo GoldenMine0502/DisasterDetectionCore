@@ -14,7 +14,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 # from IPython.display import IFrame
 
 
-with open("dataset/eccv_val.json", "r") as fp:
+with open("../dataset/eccv_val.json", "r") as fp:
     dataset = json.load(fp)
 
 
@@ -71,7 +71,7 @@ def download_images_in_parallel(image_name_and_urls, max_threads=64, timeout=16)
                 executor.submit(
                     download_image,
                     url,
-                    os.path.join('../datasets/incidents/images_val', image_name),
+                    os.path.join('../../datasets/incidents/images_val', image_name),
                     timeout
                 )
             )

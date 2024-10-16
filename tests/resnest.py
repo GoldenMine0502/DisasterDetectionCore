@@ -4,8 +4,8 @@ from datasets import tqdm
 from torch import nn, optim
 from torch.optim.lr_scheduler import CosineAnnealingLR
 
-import incidents_dataset
-from models.resnest.resnest import resnest50, resnest269
+from tests import incidents_dataset
+from models.resnest.resnest import resnest269
 
 import argparse
 import yaml

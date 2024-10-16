@@ -3,7 +3,7 @@ import os
 import torch
 
 from models.resnest.resnest import resnest269
-from resnest import convert_tensor
+from tests.resnest import convert_tensor
 
 
 DEVICE = 'cuda' if torch.cuda_is_available() else 'cpu'
@@ -34,7 +34,7 @@ def load_checkpoint(model, epoch, save_dir):
 model = resnest269(
     num_classes=6
 )
-model, optimizer, start_epoch = load_checkpoint(model, 20, 'chkpt/resnest')
+model, optimizer, start_epoch = load_checkpoint(model, 20, '../chkpt/resnest')
 
 
 def inference(image):

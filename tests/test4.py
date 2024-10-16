@@ -1,6 +1,6 @@
 import os
 
-folders = os.listdir('../datasets/incidents/images')
+folders = os.listdir('../../datasets/incidents/images')
 
 names = sorted(list(folders))
 

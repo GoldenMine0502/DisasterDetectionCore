@@ -108,7 +108,7 @@ def validate(model, validationloader, criterion, device):
 
 
 # 체크포인트 저장 함수
-def save_checkpoint(model, optimizer, scheduler, epoch, save_dir):
+def save_checkpoint(model, optimizer, epoch, save_dir):
     if not os.path.exists(save_dir):
         os.makedirs(save_dir)
     checkpoint_path = os.path.join(save_dir, f'chkpt_{epoch}.pt')
@@ -116,7 +116,7 @@ def save_checkpoint(model, optimizer, scheduler, epoch, save_dir):
         'epoch': epoch,
         'model_state_dict': model.state_dict(),
         'optimizer_state_dict': optimizer.state_dict(),
-        'scheduler_state_dict': scheduler.state_dict()
+        # 'scheduler_state_dict': scheduler.state_dict()
     }, checkpoint_path)
     print(f"Checkpoint saved at {checkpoint_path}")
 
@@ -185,16 +185,16 @@ def main():
     # criterion = nn.CrossEntropyLoss()
 
     criterion = BalancedFocalLoss(
-        alpha=torch.tensor([0.2175, 0.2175, 0.2175, 0.13, 0.2175]).to(device),  # 과거 0.15
+        alpha=torch.tensor([0.2125, 0.2125, 0.2125, 0.15, 0.2125]).to(device),  # 과거 0.15
         gamma=2.0,
         weight=torch.tensor([1.0, 1.0, 1.0, 1.0, 1.0]).to(device)
     )
-    optimizer = optim.AdamW(model.parameters(), lr=learning_rate, weight_decay=0.0001)
+    optimizer = optim.AdamW(model.parameters(), lr=learning_rate, weight_decay=0.00001)
     # optimizer = optim.SGD(model.parameters(), lr=learning_rate, momentum=0.9, weight_decay=0.0001)
 
     # Define the cosine learning rate scheduler
     # scheduler = CosineAnnealingLR(optimizer, T_max=num_epochs, eta_min=0)
-    scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.5)
+    # scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.5)
 
     # 학습 및 검증 반복문
     for epoch in range(1, num_epochs + 1):
@@ -208,9 +208,9 @@ def main():
 
         # n 에포크마다 체크포인트 저장
         if epoch % checkpoint_epoch == 0:
-            save_checkpoint(model, optimizer, scheduler, epoch, checkpoint_dir)
+            save_checkpoint(model, optimizer, epoch, checkpoint_dir)
 
-        scheduler.step()
+        # scheduler.step()
 
 
 if __name__ == "__main__":

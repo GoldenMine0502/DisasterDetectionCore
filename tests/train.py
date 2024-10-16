@@ -31,7 +31,7 @@ train_results = model.train(
 metrics = model.val()
 
 # Perform object detection on an image
-test_image_path = 'dataset/test/MYH20230211008300032.jpg'
+test_image_path = '../dataset/test/MYH20230211008300032.jpg'
 results = model(test_image_path)
 results[0].save(f'results/{Path(test_image_path).name}')
 
