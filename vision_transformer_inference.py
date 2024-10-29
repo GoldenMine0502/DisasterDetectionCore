@@ -43,6 +43,7 @@ config = model_pretrained.config
 config.num_labels = 5
 model = ViTForImageClassification(config)
 model, optimizer, start_epoch = load_checkpoint(model, 36, 'chkpt/vision_transformer')
+model.eval()
 
 
 def inference(image):
